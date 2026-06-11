@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canary Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff88;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 22px; border-bottom: 1px solid #1a1a1a; padding-bottom: 12px; margin-bottom: 20px; }
+    .token-input {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    input {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      color: #00ff88;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    button {
+      background: #00ff88;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    .stats {
+      background: #111;
+      border: 1px solid #1a3a1a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #888;
+    }
+    .stats span { color: #00ff88; font-size: 28px; font-weight: bold; display: block; }
+    .hit {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-left: 3px solid #00ff88;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .hit .time { color: #555; font-size: 11px; margin-bottom: 6px; }
+    .hit .ip { color: #00aaff; font-weight: bold; margin-bottom: 4px; }
+    .hit .gps { color: #ffaa00; margin-bottom: 4px; }
+    .hit .device { color: #888; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .map-link { color: #00ff88; text-decoration: none; font-size: 11px; }
+    .empty { text-align: center; color: #333; padding: 40px; }
+    .error { color: #ff4444; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🕯️ Canary Dashboard</h1>
+
+  <div class="token-input">
+    <input type="password" id="secret" placeholder="Token admin...">
+    <button onclick="loadHits()">Charger</button>
+  </div>
+
+  <div id="content"></div>
+
+  <script>
+    async function loadHits() {
+      const secret = document.getElementById('secret').value;
+      const el = document.getElementById('content');
+      el.innerHTML = '<div class="empty">Chargement...</div>';
+
+      try {
+        const res = await fetch('/api/dashboard', {
+          headers: { 'x-admin-token': secret }
+        });
+
+        if (res.status === 401) {
+          el.innerHTML = '<div class="error">❌ Token invalide</div>';
+          return;
+        }
+
+        const data = await res.json();
+        const { total, hits } = data;
+
+        let html = `<div class="stats">Total déclenchements<span>${total}</span></div>`;
+
+        if (!hits.length) {
+          html += '<div class="empty">Aucun accès enregistré pour l\'instant.</div>';
+        } else {
+          hits.forEach(h => {
+            const gpsLine = h.lat
+              ? `📍 GPS: ${h.lat.toFixed(5)}, ${h.lng.toFixed(5)} (±${Math.round(h.accuracy || 0)}m) <a class="map-link" href="https://maps.google.com/?q=${h.lat},${h.lng}" target="_blank">→ Maps</a>`
+              : `📍 GPS: ${h.geoError || 'non obtenu'}`;
+
+            html += `
+              <div class="hit">
+                <div class="time">🕐 ${new Date(h.receivedAt || h.timestamp).toLocaleString('fr-FR')}</div>
+                <div class="ip">🌐 IP: ${h.ip}</div>
+                <div class="gps">${gpsLine}</div>
+                <div class="device">💻 ${h.userAgent}</div>
+                <div class="device">📱 ${h.platform} | ${h.screenRes} | ${h.language}</div>
+              </div>`;
+          });
+        }
+
+        el.innerHTML = html;
+      } catch(e) {
+        el.innerHTML = `<div class="error">Erreur: ${e.message}</div>`;
+      }
+    }
+
+    // Charger si Entrée pressée
+    document.getElementById('secret')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') loadHits();
+    });
+  </script>
+</body>
+</html>

