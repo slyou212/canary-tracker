@@ -27,11 +27,10 @@ module.exports = async function handler(req, res) {
     const topic = process.env.NTFY_TOPIC;
     if (topic) {
       const msg = [
-        `🚨 Canary déclenché !`,
+        'CANARY DECLENCHE',
         `IP: ${ip}`,
-        body.lat ? `GPS: ${body.lat}, ${body.lng} (±${Math.round(body.accuracy)}m)` : `GPS: non obtenu`,
-        `Appareil: ${body.platform}`,
-        `Navigateur: ${(body.userAgent || '').substring(0, 80)}`,
+        body.lat ? `GPS: ${body.lat}, ${body.lng}` : `GPS: non obtenu`,
+        `Appareil: ${body.platform || '?'}`,
         `Heure: ${entry.receivedAt}`,
       ].join('\n');
 
@@ -39,9 +38,9 @@ module.exports = async function handler(req, res) {
         method: 'POST',
         body: msg,
         headers: {
-          'Title': '🚨 Canary Token Déclenché',
+          'Title': 'Canary Declenche',
           'Priority': 'urgent',
-          'Tags': 'warning,bell',
+          'Tags': 'warning',
         }
       });
     }
